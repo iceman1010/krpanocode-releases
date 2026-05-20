@@ -1,0 +1,9 @@
+# Public releases repo - BINARY ONLY
+# NO source code should be committed here
+# If you need to add files, ask yourself: "Is this a compiled binary for distribution?"
+# If the answer is no, DO NOT COMMIT IT.
+
+*
+!README.md
+!.gitignore
+!.github/
