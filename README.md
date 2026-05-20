@@ -40,7 +40,6 @@ chmod +x krpanocode.phar
 ## Requirements
 
 - PHP 8.1 or later
-- GitHub token for `--update` (set `GITHUB_TOKEN` env var or use `gh auth login`)
 
 ## Downloads
 
