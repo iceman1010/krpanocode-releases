@@ -15,19 +15,88 @@ Instead of manually hunting through `tour.xml`, `skin.xml`, `panel.xml` and doze
 
 ## Install
 
-Download the latest `krpanocode.phar` from the [releases page](https://github.com/iceman1010/krpanocode-releases/releases):
+### Step 1: Download
+
+Download the latest `krpanocode.phar` from the [releases page](https://github.com/iceman1010/krpanocode-releases/releases).
+
+### Step 2: Install as a system command
+
+Follow the instructions for your operating system.
+
+#### Linux
+
+Move the PHAR to a directory in your PATH and make it executable:
 
 ```bash
-chmod +x krpanocode.phar
+sudo mv krpanocode.phar /usr/local/bin/krpanocode
+sudo chmod +x /usr/local/bin/krpanocode
 ```
 
-Then run the one-time setup:
+Now you can run `krpanocode` from any folder.
+
+To verify:
 
 ```bash
-./krpanocode.phar --setup
+krpanocode --version
 ```
 
-This asks for your API key, verifies it works, lets you pick a default AI model from the available list, and saves everything to `~/.krpanocode/.env`.
+#### macOS (OS X)
+
+Same as Linux — move it to a directory in your PATH:
+
+```bash
+sudo mv krpanocode.phar /usr/local/bin/krpanocode
+sudo chmod +x /usr/local/bin/krpanocode
+```
+
+If `/usr/local/bin` does not exist, create it first:
+
+```bash
+sudo mkdir -p /usr/local/bin
+```
+
+Verify:
+
+```bash
+krpanocode --version
+```
+
+#### Windows
+
+1. Move the PHAR somewhere permanent, e.g. `C:\bin\krpanocode.phar`
+
+2. Open the **Environment Variables** editor:
+   - Press `Windows + R`, type `sysdm.cpl`, press Enter
+   - Go to **Advanced** → **Environment Variables**
+
+3. Add `C:\bin` to your **PATH**:
+   - Under "User variables", find **Path**, click **Edit**
+   - Click **New**, type `C:\bin`, click **OK** on all three dialogs
+
+4. Create a wrapper batch file so you don't have to type `php` manually. Open Notepad, paste:
+
+   ```bat
+   @echo off
+   php "%~dp0krpanocode.phar" %*
+   ```
+
+   Save it as `C:\bin\krpanocode.bat`
+
+5. Open a **new** terminal and verify:
+
+   ```cmd
+   krpanocode --version
+   ```
+
+### Step 3: Configure
+
+Run the one-time setup to enter your API key and pick a default model:
+
+```bash
+krpanocode --setup
+```
+
+This asks for your API key, verifies it works, lets you pick a default AI model from the available list, and saves everything to `~/.krpanocode/.env` (on Windows: `%USERPROFILE%\.krpanocode\.env`).
 
 ---
 
@@ -39,7 +108,7 @@ Navigate to your tour folder and run KRpanoCode without arguments:
 
 ```bash
 cd /path/to/my-tour
-./krpanocode.phar
+krpanocode
 ```
 
 It will find the tour automatically (looks for `index.html`), show you the editable files, and ask what you'd like to change:
@@ -108,9 +177,9 @@ KRpanoCode sends it to the AI, which reads the relevant files, makes the edits, 
 Skip the interactive prompt by passing the instruction directly:
 
 ```bash
-./krpanocode.phar -p "add a hotspot from scene1 to scene2"
-./krpanocode.phar -p "change the autorotation speed to 3" -y
-./krpanocode.phar -p "remove the floorplan thumbnail" -f /path/to/tour
+krpanocode -p "add a hotspot from scene1 to scene2"
+krpanocode -p "change the autorotation speed to 3" -y
+krpanocode -p "remove the floorplan thumbnail" -f /path/to/tour
 ```
 
 `-y` auto-confirms and keeps the changes without asking.
@@ -124,7 +193,7 @@ By default, KRpanoCode sends your instruction straight to the AI and lets it wor
 Add the `--clarify` flag when your instruction might be ambiguous, or when you want the AI to confirm it understood before making changes:
 
 ```bash
-./krpanocode.phar -p "change the skin colors" --clarify
+krpanocode -p "change the skin colors" --clarify
 ```
 
 With `--clarify`, the AI first analyses your instruction and the tour files, then tells you whether the instruction is clear or asks a follow-up question before proceeding:
@@ -171,7 +240,7 @@ KRpanoCode includes 27 curated KRPano 1.23.3 documentation files. Before editing
 To skip this (faster, but the AI relies only on its training knowledge):
 
 ```bash
-./krpanocode.phar -p "rename scene1" --no-docs
+krpanocode -p "rename scene1" --no-docs
 ```
 
 ---
@@ -181,19 +250,19 @@ To skip this (faster, but the AI relies only on its training knowledge):
 The default model is set during `--setup`. To see all available models on your proxy:
 
 ```bash
-./krpanocode.phar --models
+krpanocode --models
 ```
 
 To use a different model for one run — this also **saves it as your new default** for future runs:
 
 ```bash
-./krpanocode.phar -p "add little planet view" -m glm-5.2-nvidia
+krpanocode -p "add little planet view" -m glm-5.2-nvidia
 ```
 
 To change the model interactively (model picker):
 
 ```bash
-./krpanocode.phar --setup
+krpanocode --setup
 ```
 
 ---
@@ -221,7 +290,7 @@ To change the model interactively (model picker):
 To check for and install the latest version:
 
 ```bash
-./krpanocode.phar --update
+krpanocode --update
 ```
 
 This downloads the new PHAR from the [releases page](https://github.com/iceman1010/krpanocode-releases/releases) and replaces itself in place.
@@ -264,11 +333,10 @@ A **backup** of all your tour files is created before editing, so if anything go
 
 Settings are stored in your home directory:
 
-```
-~/.krpanocode/.env
-```
+- **Linux / macOS:** `~/.krpanocode/.env`
+- **Windows:** `%USERPROFILE%\.krpanocode\.env`
 
-This file contains your API key and default model. It is created by `--setup` with `0600` permissions (only you can read/write it). You can edit it manually if needed:
+This file contains your API key and default model. It is created by `--setup` (readable/writable by you only). You can edit it manually if needed:
 
 ```
 PANOMATICS_API_KEY=your-key-here
