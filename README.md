@@ -267,6 +267,111 @@ krpanocode --setup
 
 ---
 
+## Machine Mode (`--json`)
+
+`--json` switches all output from human-readable boxes/tables to **NDJSON**
+(Newline-Delimited JSON): one JSON object per line on `stdout`, flushed as
+events happen. No ANSI colors, no banner, no prompts.
+
+It is the interface the **KRPano Code desktop UI** (a separate Tauri app) drives
+the PHAR through. You can also use it for scripting, CI, or any other
+automation that wants structured progress instead of plain text.
+
+The contract for every event type lives in
+[`PLAN-JSON-MODE.md`](./PLAN-JSON-MODE.md) and is the authoritative spec.
+
+### Quick examples
+
+```bash
+# Version (one line)
+krpanocode --json --version
+# -> {"type":"version","version":"0.3.2"}
+
+# List available models
+krpanocode --json --models
+# -> {"type":"models","models":["glm-5.2-coding","glm-5.2-nvidia",...]}
+
+# Non-interactive setup: writes ~/.krpanocode/.env
+krpanocode --json --setup --key SK-xxx --model glm-5.2-coding --backup-keep 10
+# -> {"type":"setup","ok":true,"model":"glm-5.2-coding","models":[...]}
+
+# Undo: restore the most recent backup for a tour folder
+krpanocode --json --restore -f ./my-tour
+# -> {"type":"restored","files":["tour.xml","skin/skin.xml"],"backup":"/abs/path"}
+#    {"type":"done"}
+
+# Edit a tour — streams events live
+krpanocode --json -p "rename scene_poolsideday to lobby" -f ./my-tour --yes
+# -> {"type":"start","tour":"my-tour","backup":"/abs/path","editable":[...],"locked":[...]}
+#    {"type":"tool","name":"read_file","file":"tour.xml","ms":4}
+#    {"type":"tool","name":"write_file","file":"tour.xml","bytes":8490,"ms":0}
+#    {"type":"diff","file":"tour.xml","hunks":[{"line":123,"context":"...","old":"title=\"A\"","new":"title=\"B\""}]}
+#    {"type":"done","ms":45291}
+
+# Clarify flow — blocks on stdin for one line after each clarify event
+krpanocode --json --clarify -p "..." -f ./my-tour
+# -> {"type":"start",...}
+#    {"type":"clarify","status":"clarify","question":"Which colors?"}
+#    <the process blocks here, reading one line from stdin>
+#    ...when the UI writes "<answer>\n" to stdin, the PHAR proceeds...
+#    {"type":"clarify","status":"clear","reason":"..."}
+```
+
+### Event types at a glance
+
+| Event type   | Emitted by | Key fields (besides `type`) |
+|--------------|------------|------------------------------|
+| `start`      | edit       | `tour`, `backup`, `editable[]`, `locked[]` |
+| `reasoning`  | edit (optional) | `text` |
+| `tool`       | edit       | `name`, `file` (when N/A), `ms`, `bytes` (write_file only), `query` (docsearch only) |
+| `clarify`    | `--clarify` | `status` (`clear` or `clarify`), `reason` (when clear), `question` (when clarify) |
+| `diff`       | edit       | `file`, `hunks[]` (each: `line`, `context`, `old`, `new`) |
+| `restored`   | `--restore` | `files[]`, `backup` |
+| `done`       | edit, restore | `ms` (edit only) |
+| `models`     | `--models` | `models[]` |
+| `setup`      | `--setup`  | `ok`, `model`, `models[]` (additive), `error` (when `ok:false`) |
+| `version`    | `--version` | `version` |
+| `error`      | all (on failure) | `message` — plus `kind`, `model`, `reset_at`, `retry_after_seconds` on rate limits |
+
+### Rate-limit errors (429)
+
+When the LLM proxy returns a 429, `--json` mode emits an `error` event with
+additive fields so a UI can show a countdown + Retry button without parsing
+the message:
+
+```json
+{
+  "type": "error",
+  "message": "Rate limit reached on glm-5.2-coding. Limit resets at 2026-07-25T10:44:41Z.",
+  "kind": "rate_limit",
+  "model": "glm-5.2-coding",
+  "reset_at": "2026-07-25T10:44:41Z",
+  "retry_after_seconds": 37623
+}
+```
+
+A consumer that only reads `message` still works. `reset_at` is canonical
+ISO-8601 UTC (`...Z`). The CLI does **not** auto-retry or auto-fallback on
+429 — it restores the backup, emits this error, exits non-zero, and leaves
+the retry decision to the caller.
+
+### Notes for `--json` consumers
+
+- **Backup scheme:** `start.backup` is the tour directory itself, not a
+  timestamped per-edit folder. Undo (`--restore`) reverts to the single
+  backup set the CLI keeps. See [`backupproblem.md`](./backupproblem.md)
+  for the full rationale.
+- **Clarify + stdin:** after a `{"type":"clarify","status":"clarify",...}`
+  event, the process **blocks** reading one line from `stdin`. The
+  consumer must write `<answer>\n` to stdin AND keep draining stdout, or
+  PHP's buffering can deadlock when the stdin write blocks.
+- **Clarify abort:** writing `skip` (or EOF with no input) aborts the
+  clarify round-trip and the edit is rolled back.
+- **`--update` has no `--json` mode** today; the UI should call `--update`
+  out of band or without `--json`.
+
+---
+
 ## All Options
 
 | Flag | Description |
@@ -277,9 +382,13 @@ krpanocode --setup
 | `-c, --clarify` | Ask the AI to confirm it understood before editing |
 | `--no-docs` | Skip KRPano documentation lookup (faster, less accurate for obscure features) |
 | `--models` | List all models available on your proxy and exit |
-| `--setup` | Configure your API key and default model interactively |
+| `--setup` | Configure your API key and default model interactively (or non-interactively with `--json --key --model`) |
 | `-y, --yes` | Keep changes automatically, no confirmation prompt |
 | `-u, --update` | Check for and install the latest version |
+| `--json` | Machine mode: NDJSON events on stdout instead of human output |
+| `--restore` | Restore the most recent backup for the `-f` tour folder and exit |
+| `--key` | Setup (non-interactive): API key to write to `~/.krpanocode/.env` |
+| `--backup-keep` | Setup: number of backups to keep per tour (default 10) |
 | `-h, --help` | Show help |
 | `-V, --version` | Show version |
 
