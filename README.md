@@ -98,6 +98,14 @@ krpanocode --setup
 
 This asks for your API key, verifies it works, lets you pick a default AI model from the available list, and saves everything to `~/.krpanocode/.env` (on Windows: `%USERPROFILE%\.krpanocode\.env`).
 
+**Quick API key setup (non-interactive):**
+
+```bash
+krpanocode --key SK-your-api-key-here
+```
+
+This sets only the API key without running the full interactive setup. Use `--json --key` for machine mode.
+
 ---
 
 ## How to Use
