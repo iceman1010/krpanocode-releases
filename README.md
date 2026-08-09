@@ -331,8 +331,10 @@ krpanocode --json --clarify -p "..." -f ./my-tour
 |--------------|------------|------------------------------|
 | `start`      | edit       | `tour`, `backup`, `editable[]`, `locked[]` |
 | `reasoning`  | edit (optional) | `text` |
-| `tool`       | edit       | `name`, `file` (when N/A), `ms`, `bytes` (write_file only), `query` (docsearch only) |
+| `tool`       | edit       | `name`, `file` (when N/A), `ms`, `bytes` (write_file only), `query` (docsearch only), `files[]`+`reason` (plan_files only) |
+| `plan_files` | edit (user-gated pre-read) | `status` (`ask`, `yes`, `no`), `files[]`, `reason` (on ask), optional `reason` (on no) |
 | `clarify`    | `--clarify` | `status` (`clear` or `clarify`), `reason` (when clear), `question` (when clarify) |
+| `validation_retry` | edit (user-gated self-correction) | `status` (`ask`, `retry`, `abort`), `attempt`, `maxAttempts`, `kind`, `file`, `line`, `message`, `details[]` |
 | `diff`       | edit       | `file`, `hunks[]` (each: `line`, `context`, `old`, `new`) |
 | `restored`   | `--restore` | `files[]`, `backup` |
 | `done`       | edit, restore | `ms` (edit only) |
@@ -375,6 +377,17 @@ the retry decision to the caller.
   PHP's buffering can deadlock when the stdin write blocks.
 - **Clarify abort:** writing `skip` (or EOF with no input) aborts the
   clarify round-trip and the edit is rolled back.
+- **Plan files + stdin:** after a `{"type":"plan_files","status":"ask",...}`
+  event, the process **blocks** reading one line from `stdin` — same channel
+  and contract as `clarify`. Write `"yes"`/`"y"` to approve (the model then
+  receives all requested file contents inline), anything else or EOF to
+  decline (the model falls back to individual `read_file` calls). `--yes`
+  auto-approves so headless runs aren't blocked.
+- **Manifest enrichment:** the text manifest in the edit user-message now
+  carries bracketed structural hints per file (e.g. `[defines-styles:textnames]`,
+  `[uses-styles:textnames]`, `[align:bottomleft]`). This is invisible to
+  `--json` consumers (the `start.editable` array is unchanged) but improves
+  the model's file-targeting accuracy.
 - **`--update` has no `--json` mode** today; the UI should call `--update`
   out of band or without `--json`.
 
@@ -424,16 +437,32 @@ Your instruction (plain English)
   (index.html → XML → <include> → all linked files)
         │
         ▼
+  File manifest is built with structural hints
+  (style defs, style refs, align values per file)
+        │
+        ▼
   (optional) DocSearch finds relevant KRPano docs
   from 27 curated files covering KRPano 1.23.3
         │
         ▼
   (--clarify) AI checks if instruction is clear —
-  asks you a question if it's ambiguous
+  asks you a question if it's ambiguous.
+  Its verdict is carried forward as an explicit
+  target anchor for the edit phase.
+        │
+        ▼
+  AI optionally declares the files it intends to
+  read/edit via the plan_files tool — you confirm
+  before it reads them
         │
         ▼
   AI reads and edits the files using tool calls
   (reads each file, then writes back the changes)
+        │
+        ▼
+  CLI validates the resulting XML — if invalid,
+  asks you whether to let the AI self-correct
+  (up to max_validation_retries times)
         │
         ▼
   You see a color-coded diff showing every changed line
