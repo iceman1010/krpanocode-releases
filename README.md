@@ -382,7 +382,9 @@ the retry decision to the caller.
   and contract as `clarify`. Write `"yes"`/`"y"` to approve (the model then
   receives all requested file contents inline), anything else or EOF to
   decline (the model falls back to individual `read_file` calls). `--yes`
-  auto-approves so headless runs aren't blocked.
+  auto-approves so headless runs aren't blocked. `--auto-approve-file-scope`
+  also auto-approves but emits `status:"auto-approved"` so the conversation
+  log still records the model's proposed file list.
 - **Manifest enrichment:** the text manifest in the edit user-message now
   carries bracketed structural hints per file (e.g. `[defines-styles:textnames]`,
   `[uses-styles:textnames]`, `[align:bottomleft]`). This is invisible to
@@ -405,6 +407,7 @@ the retry decision to the caller.
 | `--models` | List all models available on your proxy and exit |
 | `--setup` | Configure your API key and default model interactively (or non-interactively with `--json --key --model`) |
 | `-y, --yes` | Keep changes automatically, no confirmation prompt |
+| `--auto-approve-file-scope` | Auto-approve the AI's proposed file-scope plan without asking (skips the `plan_files` confirmation) |
 | `-u, --update` | Check for and install the latest version |
 | `--json` | Machine mode: NDJSON events on stdout instead of human output |
 | `--restore` | Restore the most recent backup for the `-f` tour folder and exit |
