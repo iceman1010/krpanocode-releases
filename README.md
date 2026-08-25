@@ -106,6 +106,16 @@ krpanocode --key SK-your-api-key-here
 
 This sets only the API key without running the full interactive setup. Use `--json --key` for machine mode.
 
+### Step 4: Stay up to date
+
+To check for and install the latest version later (replaces the PHAR in place, no re-download needed):
+
+```bash
+krpanocode --update
+```
+
+See [Self-Update](#self-update) below for pinning a specific version and authentication details.
+
 ---
 
 ## How to Use
@@ -408,10 +418,12 @@ the retry decision to the caller.
 | `--setup` | Configure your API key and default model interactively (or non-interactively with `--json --key --model`) |
 | `-y, --yes` | Keep changes automatically, no confirmation prompt |
 | `--auto-approve-file-scope` | Auto-approve the AI's proposed file-scope plan without asking (skips the `plan_files` confirmation) |
-| `-u, --update` | Check for and install the latest version |
+| `-u, --update` | Check for updates and install the latest version (replaces the PHAR in place) |
+| `--to-version` | With `--update`: install a specific version, e.g. `--to-version 0.5.8` (downgrade allowed) |
 | `--json` | Machine mode: NDJSON events on stdout instead of human output |
 | `--restore` | Restore the most recent backup for the `-f` tour folder and exit |
 | `--key` | Setup (non-interactive): API key to write to `~/.krpanocode/.env` |
+| `--validate-only` | Validate a single XML file and exit (0 = valid, 1 = invalid); pair with `--json` for NDJSON output |
 | `--backup-keep` | Setup: number of backups to keep per tour (default 10) |
 | `-h, --help` | Show help |
 | `-V, --version` | Show version |
@@ -420,13 +432,36 @@ the retry decision to the caller.
 
 ## Self-Update
 
-To check for and install the latest version:
+Already installed KRpanoCode? You never need to re-download manually — it updates itself.
+
+### Update to the latest version
 
 ```bash
 krpanocode --update
 ```
 
-This downloads the new PHAR from the [releases page](https://github.com/iceman1010/krpanocode-releases/releases) and replaces itself in place.
+Checks the [releases page](https://github.com/iceman1010/krpanocode-releases/releases), and if a newer version exists, downloads the new PHAR and **replaces itself in place** (downloaded to a temp file first, then swapped in — a failed download never touches your working binary). If you're already up to date, it does nothing.
+
+### Install a specific version (or downgrade)
+
+```bash
+krpanocode --update --to-version 0.5.8
+```
+
+Installs exactly that version — also works to roll back if a newer release misbehaves on your machine.
+
+### Authentication
+
+Releases are served from a private GitHub repo, so `--update` needs GitHub credentials (picked up automatically in this order):
+
+1. `GITHUB_TOKEN` environment variable
+2. an authenticated [GitHub CLI](https://cli.github.com/) (`gh auth login` once — the token is read via `gh auth token`)
+
+Without either, the GitHub API rejects the request as anonymous. After updating, verify with:
+
+```bash
+krpanocode --version
+```
 
 ---
 
