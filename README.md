@@ -277,7 +277,13 @@ To use a different model for one run — this also **saves it as your new defaul
 krpanocode -p "add little planet view" -m glm-5.2-nvidia
 ```
 
-To change the model interactively (model picker):
+To change the model interactively (numbered list picker, saves the default):
+
+```bash
+krpanocode --set-model
+```
+
+The full `--setup` flow (API key + model together):
 
 ```bash
 krpanocode --setup
@@ -415,6 +421,7 @@ the retry decision to the caller.
 | `-c, --clarify` | Ask the AI to confirm it understood before editing |
 | `--no-docs` | Skip KRPano documentation lookup (faster, less accurate for obscure features) |
 | `--models` | List all models available on your proxy and exit |
+| `--set-model` | Pick the default model from a numbered list of available models (interactive) and exit |
 | `--setup` | Configure your API key and default model interactively (or non-interactively with `--json --key --model`) |
 | `-y, --yes` | Keep changes automatically, no confirmation prompt |
 | `--auto-approve-file-scope` | Auto-approve the AI's proposed file-scope plan without asking (skips the `plan_files` confirmation) |
